@@ -1,9 +1,4 @@
-import {
-  checkRequired,
-  formatDateTime,
-  getApiResponseName,
-  md5,
-} from "./top_util.ts";
+import { checkRequired, formatDateTime, md5 } from "./top_util.ts";
 
 interface ITopClientOptions {
   url?: string;
@@ -36,31 +31,8 @@ export class TopClient {
     return formatDateTime(new Date());
   }
 
-  private async invoke(
-    type: "get" | "post",
-    method: string,
-    params: RequestParams,
-    responseNames: string[],
-    httpHeaders: RequestHeaders
-  ) {
-    params.method = method;
-    const result = await this.request(type, params, httpHeaders);
-
-    let response = result;
-    if (responseNames) {
-      for (const name of responseNames) {
-        if (response[name] === undefined) {
-          return undefined;
-        }
-        response = response[name];
-      }
-    }
-
-    return response;
-  }
-
   async request(
-    type: "get" | "post",
+    method: string,
     params: RequestParams,
     httpHeaders: RequestHeaders
   ) {
@@ -68,7 +40,7 @@ export class TopClient {
     if (err) throw err;
 
     const args: Record<string, string> = {
-      method: params["method"] as string,
+      method,
       timestamp: this.timestamp(),
       // timestamp: "2023-09-05 09:04:17",
       format: "json",
@@ -86,7 +58,6 @@ export class TopClient {
 
     delete params["method"];
     const url = `${this.url}?${new URLSearchParams(args)}`;
-    console.log("url: ", url);
 
     const formData = new URLSearchParams();
     for (const [key, val] of Object.entries(params)) {
@@ -94,7 +65,7 @@ export class TopClient {
     }
 
     const resp = await fetch(url, {
-      method: type.toUpperCase(),
+      method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         ...httpHeaders,
@@ -115,7 +86,6 @@ export class TopClient {
   }
 
   private sign(params: RequestParams) {
-    console.log("sign params: ", params);
     const sorted = Object.keys(params).sort();
     let baseString = this.appSecret;
 
@@ -124,8 +94,6 @@ export class TopClient {
     }
 
     baseString += this.appSecret;
-    console.log("sign baseString: ", baseString);
-    console.log(md5(baseString).toUpperCase());
     return md5(baseString).toUpperCase();
   }
 
@@ -134,22 +102,6 @@ export class TopClient {
     params: RequestParams,
     httpHeaders: RequestHeaders = {}
   ) {
-    return this.invoke(
-      "post",
-      apiName,
-      params,
-      [getApiResponseName(apiName)],
-      httpHeaders
-    );
-  }
-
-  public get(apiName: string, params: RequestParams) {
-    return this.invoke(
-      "get",
-      apiName,
-      params,
-      [getApiResponseName(apiName)],
-      {}
-    );
+    return this.request(apiName, params, httpHeaders);
   }
 }

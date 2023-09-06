@@ -77,12 +77,6 @@ export function checkRequired(
   }
 }
 
-export function getApiResponseName(apiName: string) {
-  const reg = /\./g;
-  if (apiName.match("^taobao")) apiName = apiName.substring(7);
-  return apiName.replace(reg, "_") + "_response";
-}
-
 export function getLocalIPAdress() {
   const interfaces = Deno.networkInterfaces();
   return interfaces.find(
