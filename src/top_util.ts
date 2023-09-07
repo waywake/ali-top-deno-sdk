@@ -77,27 +77,9 @@ export function checkRequired(
   }
 }
 
-export function getLocalIPAdress() {
-  const interfaces = Deno.networkInterfaces();
-  return interfaces.find(
-    (x) => x.family == "IPv4" && x.address != "127.0.0.1" && x.address != "::1"
-  )?.address;
-}
-
-export function is(val: unknown) {
-  const type = Object.prototype.toString.call(val).slice(8, -1).toLowerCase();
-
-  return {
-    a: (check: FunctionConstructor | string) => {
-      if (typeof check === "function" && check.name) {
-        return type === check.name.toLowerCase();
-      }
-
-      if (typeof check === "string") {
-        return type === check.toLowerCase();
-      }
-
-      return false;
-    },
-  };
+export function pickKeys<T extends object>(obj: T, keys: Array<keyof T>): Partial<T> {
+  return keys.reduce(
+    (acc, key) => (Object.hasOwn(obj, key) ? { ...acc, [key]: obj[key] } : acc),
+    {}
+  );
 }

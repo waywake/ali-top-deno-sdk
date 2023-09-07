@@ -1,4 +1,4 @@
-import { checkRequired, formatDateTime, md5 } from "./top_util.ts";
+import { checkRequired, formatDateTime, md5, pickKeys } from "./top_util.ts";
 
 interface ITopClientOptions {
   url?: string;
@@ -32,15 +32,15 @@ export class TopClient {
   }
 
   async request(
-    method: string,
     params: RequestParams,
+    responseNames: string[],
     httpHeaders: RequestHeaders
   ) {
     const err = checkRequired(params, "method");
     if (err) throw err;
 
     const args: Record<string, string> = {
-      method,
+      method: params["method"] as string,
       timestamp: this.timestamp(),
       // timestamp: "2023-09-05 09:04:17",
       format: "json",
@@ -57,6 +57,7 @@ export class TopClient {
     });
 
     delete params["method"];
+
     const url = `${this.url}?${new URLSearchParams(args)}`;
 
     const formData = new URLSearchParams();
@@ -74,15 +75,11 @@ export class TopClient {
     });
 
     const result = await resp.json();
-    if (result?.response?.flag === "failure") {
-      throw new Error(
-        `Request error: ${result.response.message} (${JSON.stringify(
-          result.response
-        )})`
-      );
+    if (result === null) {
+      throw new Error("Response is null");
     }
 
-    return result;
+    return responseNames.length > 0 ? pickKeys(result, responseNames) : result;
   }
 
   private sign(params: RequestParams) {
@@ -98,10 +95,10 @@ export class TopClient {
   }
 
   public execute(
-    apiName: string,
     params: RequestParams,
+    responseNames: string[],
     httpHeaders: RequestHeaders = {}
   ) {
-    return this.request(apiName, params, httpHeaders);
+    return this.request(params, responseNames, httpHeaders);
   }
 }
