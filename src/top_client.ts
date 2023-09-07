@@ -7,7 +7,7 @@ interface ITopClientOptions {
   targetAppKey?: string;
 }
 
-type RequestParams = Record<string, unknown>;
+type RequestParams = Record<string, string>;
 type RequestHeaders = Record<string, string>;
 
 export class TopClient {
@@ -42,7 +42,6 @@ export class TopClient {
     const args: Record<string, string> = {
       method: params["method"] as string,
       timestamp: this.timestamp(),
-      // timestamp: "2023-09-05 09:04:17",
       format: "json",
       app_key: this.appKey,
       v: "2.0",
@@ -60,6 +59,23 @@ export class TopClient {
 
     const url = `${this.url}?${new URLSearchParams(args)}`;
 
+    let body: BodyInit;
+    const headers = { ...httpHeaders };
+    const isMultipart = Object.values(params).some((val) =>
+      val.startsWith("@")
+    );
+
+    if (isMultipart) {
+      throw new Error("Multipart is not supported yet");
+    } else {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, val]) => {
+        searchParams.set(key, val as string);
+      });
+      body = searchParams.toString();
+      headers["Content-Type"] = "application/x-www-form-urlencoded";
+    }
+
     const formData = new URLSearchParams();
     for (const [key, val] of Object.entries(params)) {
       formData.set(key, val as string);
@@ -67,11 +83,8 @@ export class TopClient {
 
     const resp = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        ...httpHeaders,
-      },
-      body: formData,
+      headers,
+      body,
     });
 
     const result = await resp.json();
